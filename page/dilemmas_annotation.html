@@ -906,10 +906,38 @@ function restoreResponse(d, saved) {
 // ══════════════════════════════════════
 // SUBMIT
 // ══════════════════════════════════════
-function submitAll() {
+async function submitAll() {
   saveCurrentResponse();
-  console.log("Responses to submit:", JSON.stringify({ prolific_pid: PROLIFIC_PID, responses }, null, 2));
-  // → Here you'll POST to your Google Sheets webhook
+
+  const SHEET_URL = "https://script.google.com/macros/s/AKfycbx0a-aKW-xIMHBMzbHGOMC5lPX3JKqkyNNIeYqAXL1fh0il4KqmNeEPU1K9JoIVe4IH8w/exec";
+
+  // Flatten responses into one row per foundation rating
+  const rows = [];
+  Object.entries(responses).forEach(([dilemmaId, sides]) => {
+    ['do', 'notdo'].forEach(side => {
+      Object.entries(sides[side] || {}).forEach(([foundation, val]) => {
+        rows.push({
+          prolific_pid: PROLIFIC_PID,
+          dilemma_id:   dilemmaId,
+          side:         side,
+          foundation:   foundation,
+          rating:       val.rating,
+          correction:   val.correction || "",
+        });
+      });
+    });
+  });
+
+  try {
+    await fetch(SHEET_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify({ rows }),
+    });
+  } catch (err) {
+    console.error("Submission error:", err);
+  }
+
   document.getElementById('prolific-code-display').textContent = PROLIFIC_CODE;
   goTo('screen-complete');
 }
