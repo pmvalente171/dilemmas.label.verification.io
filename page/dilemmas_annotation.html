@@ -593,7 +593,7 @@
     <div class="columns">
       <!-- DO column -->
       <div id="col-do">
-        <div class="col-title">Do</div>
+        <div class="col-title">Action A</div>
         <div class="col-action" id="do-action"></div>
         <div class="foundation-rows" id="do-foundations"></div>
       </div>
@@ -602,7 +602,7 @@
 
       <!-- DON'T DO column -->
       <div id="col-notdo">
-        <div class="col-title">Don't do</div>
+        <div class="col-title">Action B</div>
         <div class="col-action" id="notdo-action"></div>
         <div class="foundation-rows" id="notdo-foundations"></div>
       </div>
@@ -663,7 +663,7 @@ function parseSet(s) {
 const RAW = [
   { id: 33532,  situation: "You are the sole breadwinner of your family. Your boss is offering the promotion you've worked years for. More money, more status, but the hours would be brutal. Your partner is supportive but quietly struggling taking care of your young kids. Should you accept the promotion and secure your family's financial future or reject it to spend more quality time with your family?", do_action: "Accept the Promotion", do_labels: "{'loyalty_betrayal'}", notdo_action: "Reject the Promotion", notdo_labels: "{'authority_subversion', 'loyalty_betrayal'}", differentiator: "{'authority_subversion'}" },
   { id: 46555,  situation: "You run a charity with limited resources to feed the hungry. You have to decide between feeding the local community or sending their resources to a famine-stricken area overseas. Should your charity prioritize the local community or the overseas emergency?", do_action: "Prioritize local community", do_labels: "{'care_harm', 'loyalty_betrayal'}", notdo_action: "Prioritize overseas emergency", notdo_labels: "{'authority_subversion', 'care_harm', 'loyalty_betrayal'}", differentiator: "{'authority_subversion'}" },
-  { id: 48246,  situation: "You have always dreamed of becoming a professional musician. You have just graduated highschool and are currently fully supported by your parents. Your parents, however, believe that a career in music is unstable and want you to pursue a career in law. Should you pursue your dream of becoming a musician, if it means undermining and disappointing your parents?", do_action: "Pursue Music Career", do_labels: "{'care_harm', 'loyalty_betrayal'}", notdo_action: "Stay in Law / Follow Parents", notdo_labels: "{'authority_subversion', 'care_harm', 'loyalty_betrayal'}", differentiator: "{'authority_subversion'}" },
+  { id: 48246,  situation: "You have always dreamed of becoming a professional musician. You have just graduated highschool and are currently fully supported by your parents. Your parents, however, believe that a career in music is unstable and want you to pursue a career in law. Should you pursue your dream of becoming a musician, if it means undermining and disappointing your parents?", do_action: "Pursue Music Career", do_labels: "{'care_harm', 'loyalty_betrayal'}", notdo_action: "Pursue Law Career", notdo_labels: "{'authority_subversion', 'care_harm', 'loyalty_betrayal'}", differentiator: "{'authority_subversion'}" },
   { id: 31266,  situation: "You are a young woman who accidentally got pregnant and knows you can't financially or emotionally support a child. Your boyfriend wants you to keep the baby, believing you guys can make it work, but you're considering abortion. Should you go through with the pregnancy due to your boyfriend's wishes or should you prioritize your own ability to provide and care for the baby?", do_action: "Go through with the pregnancy", do_labels: "{'purity_degradation', 'loyalty_betrayal', 'proportionality', 'care_harm'}", notdo_action: "Opt for abortion", notdo_labels: "{'loyalty_betrayal', 'care_harm', 'purity_degradation', 'authority_subversion', 'proportionality'}", differentiator: "{'authority_subversion'}" },
   { id: 43764,  situation: "You are a therapist who often gives friends advice. Your friend is considering leaving her spouse, but you know her spouse is also your patient and is working hard to save the marriage. Should you tell your friend about her spouse's efforts, potentially breaching patient confidentiality?", do_action: "Breach Patient Confidentiality", do_labels: "{'loyalty_betrayal', 'proportionality', 'care_harm'}", notdo_action: "Uphold Patient Confidentiality", notdo_labels: "{'authority_subversion', 'loyalty_betrayal', 'proportionality', 'care_harm'}", differentiator: "{'authority_subversion'}" },
   { id: 45012,  situation: "As an independent artist, you have built a successful personal brand and no longer need to work for others. However, a major corporation offers you a lucrative contract to exclusively produce art for them, but this would mean relinquishing control over your creative process and potentially compromising your artistic integrity. Should you accept the corporate offer, prioritizing financial security over artistic freedom?", do_action: "Accept the corporate offer", do_labels: "set()", notdo_action: "Reject the corporate offer", notdo_labels: "{'proportionality'}", differentiator: "{'proportionality'}" },
@@ -819,6 +819,7 @@ function renderFoundations(containerId, foundations, differentiators, d, side) {
         <div class="correction-label">Which foundation fits better?</div>
         <select class="correction-select" id="sel-${uid}" onchange="checkComplete()">
           <option value="">— Select a foundation —</option>
+          <option value="none">None — no other foundation fits</option>
           ${ALL_FOUNDATIONS.map(f => `<option value="${f}">${FOUNDATION_META[f].label}</option>`).join('')}
         </select>
       </div>
@@ -906,10 +907,44 @@ function restoreResponse(d, saved) {
 // ══════════════════════════════════════
 // SUBMIT
 // ══════════════════════════════════════
-function submitAll() {
+async function submitAll() {
+  // Prevent double submission
+  const submitBtn = document.getElementById('btn-next-task');
+  if (submitBtn.disabled) return;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting…';
+
   saveCurrentResponse();
-  console.log("Responses to submit:", JSON.stringify({ prolific_pid: PROLIFIC_PID, responses }, null, 2));
-  // → Here you'll POST to your Google Sheets webhook
+
+  const SHEET_URL = "https://script.google.com/macros/s/AKfycbx0a-aKW-xIMHBMzbHGOMC5lPX3JKqkyNNIeYqAXL1fh0il4KqmNeEPU1K9JoIVe4IH8w/exec";
+
+  // Flatten responses into one row per foundation rating
+  const rows = [];
+  Object.entries(responses).forEach(([dilemmaId, sides]) => {
+    ['do', 'notdo'].forEach(side => {
+      Object.entries(sides[side] || {}).forEach(([foundation, val]) => {
+        rows.push({
+          prolific_pid: PROLIFIC_PID,
+          dilemma_id:   dilemmaId,
+          side:         side,
+          foundation:   foundation,
+          rating:       val.rating,
+          correction:   val.correction || "",
+        });
+      });
+    });
+  });
+
+  try {
+    await fetch(SHEET_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify({ rows }),
+    });
+  } catch (err) {
+    console.error("Submission error:", err);
+  }
+
   document.getElementById('prolific-code-display').textContent = PROLIFIC_CODE;
   goTo('screen-complete');
 }
