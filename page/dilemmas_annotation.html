@@ -907,6 +907,12 @@ function restoreResponse(d, saved) {
 // SUBMIT
 // ══════════════════════════════════════
 async function submitAll() {
+  // Prevent double submission
+  const submitBtn = document.getElementById('btn-next-task');
+  if (submitBtn.disabled) return;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting…';
+
   saveCurrentResponse();
 
   const SHEET_URL = "https://script.google.com/macros/s/AKfycbx0a-aKW-xIMHBMzbHGOMC5lPX3JKqkyNNIeYqAXL1fh0il4KqmNeEPU1K9JoIVe4IH8w/exec";
