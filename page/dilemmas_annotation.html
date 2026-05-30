@@ -373,35 +373,71 @@
   .three-slider label:has(input[value="neutral"]:checked) .dot  { background: var(--neutral);  border-color: var(--neutral); }
   .three-slider label:has(input[value="agree"]:checked) .dot    { background: var(--agree);    border-color: var(--agree); }
 
-  /* correction dropdown */
-  .correction-row {
-    margin-top: 8px;
-    display: none;
-  }
-  .correction-row.visible { display: block; }
-  .correction-label {
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--ink-light);
-    margin-bottom: 4px;
-  }
-  .correction-select {
-    width: 100%;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12.5px;
-    padding: 6px 10px;
+
+
+  /* foundation pills */
+  .pill-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+    padding: 5px 12px;
+    border-radius: 20px;
     border: 1.5px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg);
-    color: var(--ink);
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b6055' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-light);
     cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    letter-spacing: 0.03em;
   }
+  .pill-toggle-btn:hover { border-color: var(--ink-light); color: var(--ink); }
+  .pill-toggle-btn.active { border-color: var(--accent); color: var(--accent); }
+  .pill-panel {
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .pill-panel.open { display: flex; }
+  .f-pill {
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-light);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    position: relative;
+  }
+  .f-pill .tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: var(--ink);
+    color: var(--card);
+    font-size: 11px;
+    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 8px;
+    width: 200px;
+    pointer-events: none;
+    font-weight: 400;
+    text-align: left;
+    white-space: normal;
+  }
+  .f-pill:hover .tooltip { display: block; }
+  .f-pill:hover { border-color: var(--ink-light); color: var(--ink); }
+  .f-pill.selected { background: var(--ink); border-color: var(--ink); color: var(--card); }
 
   /* progress */
   .progress-bar-wrap {
@@ -815,30 +851,51 @@ function renderFoundations(containerId, foundations, differentiators, d, side) {
         </div>
         <span class="slider-label agree">Agree</span>
       </div>
-      <div class="correction-row" id="corr-${uid}">
-        <div class="correction-label">Which foundation fits better?</div>
-        <select class="correction-select" id="sel-${uid}" onchange="checkComplete()">
-          <option value="">— Select a foundation —</option>
-          <option value="none">None — no other foundation fits</option>
-          ${ALL_FOUNDATIONS.map(f => `<option value="${f}">${FOUNDATION_META[f].label}</option>`).join('')}
-        </select>
-      </div>
+
     `;
     container.appendChild(row);
   });
+
+  // One pill button + panel per column
+  const colId = `col-pills-${side}-${d.id}`;
+  const pillBtn = document.createElement('button');
+  pillBtn.className = 'pill-toggle-btn';
+  pillBtn.id = 'toggle-' + colId;
+  pillBtn.textContent = '+ Add foundation';
+  pillBtn.onclick = () => togglePills(colId);
+  container.appendChild(pillBtn);
+
+  const pillPanel = document.createElement('div');
+  pillPanel.className = 'pill-panel';
+  pillPanel.id = 'pills-' + colId;
+  pillPanel.innerHTML = ALL_FOUNDATIONS.map(f =>
+    `<span class="f-pill" data-uid="${colId}" data-foundation="${f}" onclick="togglePill(this)">${FOUNDATION_META[f].label}<span class="tooltip"><strong style="display:block;margin-bottom:3px;text-transform:uppercase;font-size:10px;letter-spacing:0.06em;">${FOUNDATION_META[f].label}</strong>${FOUNDATION_META[f].def} <em>${FOUNDATION_META[f].example}</em></span></span>`
+  ).join('');
+  container.appendChild(pillPanel);
 }
 
 function onRatingChange(input) {
-  const name = input.name;
-  const corrRow = document.getElementById('corr-' + name);
-  if (!corrRow) return;
-  if (input.value === 'disagree' || input.value === 'neutral') {
-    corrRow.classList.add('visible');
-  } else {
-    corrRow.classList.remove('visible');
-    const sel = document.getElementById('sel-' + name);
-    if (sel) sel.value = '';
-  }
+  checkComplete();
+}
+
+function togglePills(uid) {
+  const panel = document.getElementById('pills-' + uid);
+  const btn   = document.getElementById('toggle-' + uid);
+  const isOpen = panel.classList.toggle('open');
+  btn.classList.toggle('active', isOpen);
+  btn.textContent = isOpen ? '− Add foundation' : '+ Add foundation';
+  checkComplete();
+}
+
+function togglePill(el) {
+  el.classList.toggle('selected');
+  if (!responses._pillState) responses._pillState = {};
+  const uid = el.dataset.uid;
+  if (!responses._pillState[uid]) responses._pillState[uid] = [];
+  const f = el.dataset.foundation;
+  const idx = responses._pillState[uid].indexOf(f);
+  if (idx === -1) responses._pillState[uid].push(f);
+  else responses._pillState[uid].splice(idx, 1);
   checkComplete();
 }
 
@@ -853,17 +910,19 @@ function checkComplete() {
     document.getElementById('btn-next-task').disabled = false;
     return;
   }
-  const complete = allFoundations.every(uid => {
+  const ratingsComplete = allFoundations.every(uid => {
     const checked = document.querySelector(`input[name="${uid}"]:checked`);
-    if (!checked) return false;
-    // If disagree or neutral, the correction dropdown must also be filled
-    if (checked.value === 'disagree' || checked.value === 'neutral') {
-      const sel = document.getElementById('sel-' + uid);
-      if (!sel || !sel.value) return false;
-    }
-    return true;
+    return !!checked;
   });
-  document.getElementById('btn-next-task').disabled = !complete;
+  // If a pill panel is open, at least one pill must be selected
+  const pillsComplete = ['do', 'notdo'].every(side => {
+    const colId = `col-pills-${side}-${d.id}`;
+    const panel = document.getElementById('pills-' + colId);
+    if (!panel || !panel.classList.contains('open')) return true;
+    const selected = (responses._pillState && responses._pillState[colId]) || [];
+    return selected.length > 0;
+  });
+  document.getElementById('btn-next-task').disabled = !(ratingsComplete && pillsComplete);
 }
 
 // ══════════════════════════════════════
@@ -878,12 +937,14 @@ function saveCurrentResponse() {
     foundations.forEach(fKey => {
       const uid = `${side}-${d.id}-${fKey}`;
       const checked = document.querySelector(`input[name="${uid}"]:checked`);
-      const sel = document.getElementById('sel-' + uid);
       responses[d.id][side][fKey] = {
-        rating:     checked ? checked.value : null,
-        correction: sel ? sel.value : null,
+        rating: checked ? checked.value : null,
       };
     });
+    // Save column-level pill selection
+    const colId = `col-pills-${side}-${d.id}`;
+    const pills = (responses._pillState && responses._pillState[colId]) || [];
+    responses[d.id][side]._pills = pills.length ? pills.join(',') : null;
   });
 }
 
@@ -891,16 +952,32 @@ function restoreResponse(d, saved) {
   ['do', 'notdo'].forEach(side => {
     const data = saved[side] || {};
     Object.entries(data).forEach(([fKey, val]) => {
+      if (fKey === '_pills') return;
       const uid = `${side}-${d.id}-${fKey}`;
       if (val.rating) {
         const radio = document.querySelector(`input[name="${uid}"][value="${val.rating}"]`);
         if (radio) { radio.checked = true; onRatingChange(radio); }
       }
-      if (val.correction) {
-        const sel = document.getElementById('sel-' + uid);
-        if (sel) sel.value = val.correction;
-      }
     });
+    // Restore column pill state
+    const colPills = data._pills;
+    if (colPills) {
+      const colId = `col-pills-${side}-${d.id}`;
+      const selectedF = colPills.split(',');
+      if (!responses._pillState) responses._pillState = {};
+      responses._pillState[colId] = selectedF;
+      selectedF.forEach(f => {
+        const pill = document.querySelector(`.f-pill[data-uid="${colId}"][data-foundation="${f}"]`);
+        if (pill) pill.classList.add('selected');
+      });
+      const panel = document.getElementById('pills-' + colId);
+      const btn   = document.getElementById('toggle-' + colId);
+      if (panel && selectedF.length) {
+        panel.classList.add('open');
+        btn.classList.add('active');
+        btn.textContent = '− Add foundation';
+      }
+    }
   });
 }
 
@@ -922,16 +999,31 @@ async function submitAll() {
   const rows = [];
   Object.entries(responses).forEach(([dilemmaId, sides]) => {
     ['do', 'notdo'].forEach(side => {
-      Object.entries(sides[side] || {}).forEach(([foundation, val]) => {
+      const sideData = sides[side] || {};
+      // Rows for pre-labeled foundations
+      Object.entries(sideData).forEach(([foundation, val]) => {
+        if (foundation === '_pills') return;
         rows.push({
           prolific_pid: PROLIFIC_PID,
           dilemma_id:   dilemmaId,
           side:         side,
           foundation:   foundation,
           rating:       val.rating,
-          correction:   val.correction || "",
         });
       });
+      // Rows for annotator-added foundations (rating = "added")
+      const addedPills = sideData._pills;
+      if (addedPills) {
+        addedPills.split(',').forEach(foundation => {
+          rows.push({
+            prolific_pid: PROLIFIC_PID,
+            dilemma_id:   dilemmaId,
+            side:         side,
+            foundation:   foundation,
+            rating:       'added',
+          });
+        });
+      }
     });
   });
 
