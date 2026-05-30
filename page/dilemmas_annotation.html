@@ -819,6 +819,7 @@ function renderFoundations(containerId, foundations, differentiators, d, side) {
         <div class="correction-label">Which foundation fits better?</div>
         <select class="correction-select" id="sel-${uid}" onchange="checkComplete()">
           <option value="">— Select a foundation —</option>
+          <option value="none">None — no other foundation fits</option>
           ${ALL_FOUNDATIONS.map(f => `<option value="${f}">${FOUNDATION_META[f].label}</option>`).join('')}
         </select>
       </div>
