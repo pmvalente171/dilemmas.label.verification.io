@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Dilemmas Label Verification Task</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --card: #fffdf8;
+    --ink: #1a1510;
+    --ink-light: #6b6055;
+    --accent: #c84b2f;
+    --accent2: #2f6bc8;
+    --agree: #2a7a4b;
+    --disagree: #c84b2f;
+    --neutral: #b08a50;
+    --border: #d8cfc0;
+    --shadow: 0 2px 16px rgba(26,21,16,0.09);
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+
+  .screen {
+    display: none;
+    width: 100%;
+    max-width: 860px;
+    animation: fadeIn 0.35s ease;
+  }
+  .screen.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 48px 52px;
+  }
+
+  .task-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .task-label::before {
+    content: '';
+    display: inline-block;
+    width: 20px; height: 1.5px;
+    background: var(--ink-light);
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.18;
+    color: var(--ink);
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+
+  p, .body-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--ink-light);
+  }
+
+  /* ── NAV BUTTONS ── */
+  .nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 40px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    border-radius: 8px;
+    border: 1.5px solid var(--ink);
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+  }
+  .btn:hover { background: var(--ink); color: var(--card); }
+  .btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .btn-primary {
+    background: var(--ink);
+    color: var(--card);
+  }
+  .btn-primary:hover { background: #3a2e22; }
+
+  .arrow { font-size: 18px; }
+
+  /* ── CONSENT ── */
+  .consent-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 32px;
+    padding: 16px 20px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .consent-row input[type=checkbox] {
+    width: 20px; height: 20px;
+    accent-color: var(--agree);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .consent-row label {
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* ── FOUNDATIONS LIST (instructions) ── */
+  .foundations-list {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .foundation-item {
+    padding: 14px 18px;
+    background: var(--bg);
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+  }
+  .foundation-item strong {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    display: block;
+    margin-bottom: 3px;
+  }
+  .foundation-item span {
+    font-size: 13.5px;
+    color: var(--ink-light);
+    line-height: 1.5;
+  }
+
+  /* ── DILEMMA SCREEN ── */
+  .dilemma-header {
+    border-bottom: 1.5px solid var(--border);
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+  }
+  .dilemma-meta {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 8px;
+  }
+  .dilemma-text {
+    font-size: 15.5px;
+    line-height: 1.7;
+    color: var(--ink);
+    font-weight: 400;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 0 28px;
+  }
+  .col-divider {
+    background: var(--border);
+    align-self: stretch;
+  }
+  .col-title {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .col-title::before {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 1.5px;
+    background: var(--ink-light);
+    opacity: 0.5;
+  }
+  .col-action {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 20px;
+    line-height: 1.3;
+  }
+
+  /* ── FOUNDATION ROW ── */
+  .foundation-rows { display: flex; flex-direction: column; gap: 0; }
+
+  .f-row {
+    position: relative;
+    padding: 14px 0;
+  }
+
+  .f-row.is-differentiator .f-name {
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  /* Tooltip */
+  .tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    z-index: 100;
+    background: var(--ink);
+    color: var(--card);
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 10px 14px;
+    border-radius: 8px;
+    width: 240px;
+    pointer-events: none;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .f-name:hover .tooltip { display: block; }
+
+  .f-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .f-name {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink);
+    cursor: help;
+    border-bottom: 1px dashed var(--border);
+    position: relative;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    z-index: 100;
+    background: var(--ink);
+    color: var(--card);
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 10px 14px;
+    border-radius: 8px;
+    width: 220px;
+    pointer-events: none;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+  .f-name:hover .tooltip { display: block; }
+
+  /* 3-point slider */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .slider-label {
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .slider-label.disagree { color: var(--disagree); margin-right: 6px; }
+  .slider-label.agree    { color: var(--agree);    margin-left: 6px; }
+
+  .three-slider {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    position: relative;
+  }
+  .three-slider::before {
+    content: '';
+    position: absolute;
+    left: 12px; right: 12px;
+    height: 2px;
+    background: var(--border);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 0;
+  }
+  .three-slider input[type=radio] { display: none; }
+  .three-slider label {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    z-index: 1;
+    cursor: pointer;
+  }
+  .dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--card);
+    transition: all 0.15s;
+    display: block;
+  }
+  .dot:hover { border-color: var(--ink-light); }
+
+  .three-slider input[value="disagree"]:checked ~ * .dot-disagree,
+  .three-slider label:has(input[value="disagree"]:checked) .dot { background: var(--disagree); border-color: var(--disagree); }
+  .three-slider label:has(input[value="neutral"]:checked) .dot  { background: var(--neutral);  border-color: var(--neutral); }
+  .three-slider label:has(input[value="agree"]:checked) .dot    { background: var(--agree);    border-color: var(--agree); }
+
+  /* correction dropdown */
+  .correction-row {
+    margin-top: 8px;
+    display: none;
+  }
+  .correction-row.visible { display: block; }
+  .correction-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 4px;
+  }
+  .correction-select {
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    padding: 6px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--ink);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b6055' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    cursor: pointer;
+  }
+
+  /* progress */
+  .progress-bar-wrap {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+  .progress-text {
+    font-size: 11px;
+    color: var(--ink-light);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+
+  /* completion */
+  .prolific-code {
+    font-family: 'DM Mono', monospace, 'DM Sans', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    padding: 18px 32px;
+    border-radius: 10px;
+    display: inline-block;
+    margin: 24px 0;
+  }
+
+  /* instructions link */
+  .examples-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--accent2);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  hr.divider {
+    border: none;
+    border-top: 1.5px solid var(--border);
+    margin: 28px 0;
+  }
+
+  @media (max-width: 640px) {
+    .card { padding: 28px 20px; }
+    .columns { grid-template-columns: 1fr; }
+    .col-divider { height: 1px; width: 100%; }
+    h1 { font-size: 1.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     SCREEN 1 — Welcome
+══════════════════════════════════════ -->
+<div class="screen active" id="screen-welcome">
+  <div class="card">
+    <div class="task-label">Prolific Study</div>
+    <h1>Daily Dilemmas<br>Label Verification Task</h1>
+    <p style="margin-top:16px;">
+      In this study, you will review a series of everyday moral dilemmas. For each dilemma,
+      two possible actions are presented — a <em>Do</em> action and a <em>Don't Do</em> action —
+      each labelled with one or more <strong>moral foundations</strong>. Your task is to evaluate
+      whether the assigned moral foundation labels accurately capture the ethical dimensions
+      of each action.
+    </p>
+    <p style="margin-top:12px;">
+      The study consists of <strong>22 dilemmas</strong> and should take approximately
+      <strong>15–20 minutes</strong>. Please read each dilemma carefully before responding.
+    </p>
+    <div class="nav-row">
+      <span></span>
+      <button class="btn btn-primary" onclick="goTo('screen-consent1')">Begin <span class="arrow">›</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 2 — Consent (unchecked)
+══════════════════════════════════════ -->
+<div class="screen" id="screen-consent1">
+  <div class="card">
+    <div class="task-label">Step 1 of 3 — Consent</div>
+    <h2>Information regarding the consent form</h2>
+    <p>
+      Your participation in this study is entirely voluntary. All responses are anonymous
+      and will only be used for academic research purposes. You may withdraw at any time
+      without penalty by closing the browser tab, though you will not receive compensation
+      if you do so before completing all dilemmas.
+    </p>
+    <hr class="divider">
+    <p>
+      By proceeding, you confirm that you are at least 18 years of age, that you have
+      read and understood the information above, and that you agree to participate.
+      This study has been approved by the relevant ethics board.
+    </p>
+    <div class="consent-row" onclick="toggleConsent()">
+      <input type="checkbox" id="consent-check">
+      <label for="consent-check">I consent to participate in this study.</label>
+    </div>
+    <div class="nav-row">
+      <button class="btn" onclick="goTo('screen-welcome')"><span class="arrow">‹</span> Back</button>
+      <button class="btn btn-primary" id="consent-next-btn" disabled onclick="goTo('screen-instructions')">Next <span class="arrow">›</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 3 — Task Instructions
+══════════════════════════════════════ -->
+<div class="screen" id="screen-instructions">
+  <div class="card">
+    <div class="task-label">Step 2 of 3 — Instructions</div>
+    <h2>How to annotate</h2>
+    <p>
+      Each dilemma presents two actions. For every moral foundation label assigned to an action,
+      you will indicate your agreement using a 3-point scale:
+    </p>
+    <ul style="margin: 16px 0 0 20px; line-height: 2; color: var(--ink-light); font-size: 14.5px;">
+      <li><strong style="color:var(--disagree)">Disagree</strong> — The label does not fit this action.</li>
+      <li><strong style="color:var(--neutral)">Neutral</strong> — The label partially fits, or you are unsure.</li>
+      <li><strong style="color:var(--agree)">Agree</strong> — The label accurately captures this action.</li>
+    </ul>
+    <p style="margin-top: 16px;">
+      If you select <strong>Disagree</strong> or <strong>Neutral</strong>, a dropdown will appear
+      asking you to choose which foundation you think better applies. The <strong>dashed line</strong>
+      separates the <em>shared</em> foundations from the <em>differentiating</em> foundation — the
+      one that distinguishes the two actions. Hover over any foundation name to see its definition.
+    </p>
+    <hr class="divider">
+    <h2 style="margin-bottom:12px;">The six moral foundations</h2>
+    <div class="foundations-list">
+      <div class="foundation-item">
+        <strong>Care</strong>
+        <span>Intuitions about avoiding emotional and physical damage to another individual. <em>Example: helping an injured stranger.</em></span>
+      </div>
+      <div class="foundation-item">
+        <strong>Equality</strong>
+        <span>Intuitions about equal treatment and equal outcome for individuals. <em>Example: treating all patients with the same standard of care.</em></span>
+      </div>
+      <div class="foundation-item">
+        <strong>Proportionality</strong>
+        <span>Intuitions about individuals getting rewarded in proportion to their merit or contribution. <em>Example: paying workers according to their effort, not seniority.</em></span>
+      </div>
+      <div class="foundation-item">
+        <strong>Loyalty</strong>
+        <span>Intuitions about cooperating with ingroups and competing with outgroups. <em>Example: keeping a secret to protect a friend.</em></span>
+      </div>
+      <div class="foundation-item">
+        <strong>Authority</strong>
+        <span>Intuitions about deference toward legitimate authorities and the defense of traditions, seen as providing stability and order. <em>Example: following institutional rules even when inconvenient.</em></span>
+      </div>
+      <div class="foundation-item">
+        <strong>Purity</strong>
+        <span>Intuitions about avoiding bodily and spiritual contamination and degradation. <em>Example: refusing to desecrate a sacred object.</em></span>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn" onclick="goTo('screen-consent1')"><span class="arrow">‹</span> Back</button>
+      <button class="btn btn-primary" onclick="startTask()">Start Task <span class="arrow">›</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 4 — Annotation
+══════════════════════════════════════ -->
+<div class="screen" id="screen-task">
+  <div class="card">
+    <div class="task-label">Step 3 of 3 — Annotation</div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill"></div></div>
+
+    <div class="dilemma-header">
+      <div class="dilemma-meta" id="dilemma-meta"></div>
+      <div class="dilemma-text" id="dilemma-text"></div>
+    </div>
+
+    <div class="columns">
+      <!-- DO column -->
+      <div id="col-do">
+        <div class="col-title">Do</div>
+        <div class="col-action" id="do-action"></div>
+        <div class="foundation-rows" id="do-foundations"></div>
+      </div>
+
+      <div class="col-divider"></div>
+
+      <!-- DON'T DO column -->
+      <div id="col-notdo">
+        <div class="col-title">Don't do</div>
+        <div class="col-action" id="notdo-action"></div>
+        <div class="foundation-rows" id="notdo-foundations"></div>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn" id="btn-back-task" onclick="prevDilemma()"><span class="arrow">‹</span> Back</button>
+      <span class="progress-text" id="progress-label"></span>
+      <button class="btn btn-primary" id="btn-next-task" onclick="nextDilemma()">Next <span class="arrow">›</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 5 — Complete
+══════════════════════════════════════ -->
+<div class="screen" id="screen-complete">
+  <div class="card" style="text-align:center;">
+    <div class="task-label" style="justify-content:center;">Complete</div>
+    <h1 style="font-size:2rem;">Thank you!</h1>
+    <p style="margin-top:16px; max-width:480px; margin-left:auto; margin-right:auto;">
+      Your responses have been recorded. Please use the code below to complete
+      your submission on Prolific.
+    </p>
+    <div class="prolific-code" id="prolific-code-display">XXX-XXX-XXX</div>
+    <p style="font-size:13px; color:var(--ink-light);">
+      Copy this code and return to the Prolific tab to submit.
+    </p>
+    <div style="margin-top:32px;">
+      <button class="btn btn-primary" onclick="redirectToProlific()">Return to Prolific <span class="arrow">›</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// DATA
+// ══════════════════════════════════════
+const PROLIFIC_CODE = "C1B2-A3D4"; // ← replace with your actual code
+const PROLIFIC_COMPLETION_URL = "https://app.prolific.com/submissions/complete?cc=" + PROLIFIC_CODE;
+
+const FOUNDATION_META = {
+  care_harm:            { label: "Care",            def: "Intuitions about avoiding emotional and physical damage to another individual.",                                                     example: "Helping an injured stranger." },
+  proportionality:      { label: "Proportionality", def: "Intuitions about individuals getting rewarded in proportion to their merit or contribution.",                                       example: "Paying workers according to their effort, not seniority." },
+  loyalty_betrayal:     { label: "Loyalty",         def: "Intuitions about cooperating with ingroups and competing with outgroups.",                                                          example: "Keeping a secret to protect a friend." },
+  authority_subversion: { label: "Authority",       def: "Intuitions about deference toward legitimate authorities and the defense of traditions, seen as providing stability and order.",    example: "Following institutional rules even when inconvenient." },
+  purity_degradation:   { label: "Purity",          def: "Intuitions about avoiding bodily and spiritual contamination and degradation.",                                                     example: "Refusing to desecrate a sacred object." },
+  equality:             { label: "Equality",        def: "Intuitions about equal treatment and equal outcome for individuals.",                                                               example: "Treating all patients with the same standard of care." },
+};
+
+const ALL_FOUNDATIONS = Object.keys(FOUNDATION_META);
+
+function parseSet(s) {
+  if (!s || s === "set()") return [];
+  return s.replace(/[{}']/g, "").split(",").map(f => f.trim()).filter(f => f && FOUNDATION_META[f]);
+}
+
+const RAW = [
+  { id: 33532,  situation: "You are the sole breadwinner of your family. Your boss is offering the promotion you've worked years for. More money, more status, but the hours would be brutal. Your partner is supportive but quietly struggling taking care of your young kids. Should you accept the promotion and secure your family's financial future or reject it to spend more quality time with your family?", do_action: "Accept the Promotion", do_labels: "{'loyalty_betrayal'}", notdo_action: "Reject the Promotion", notdo_labels: "{'authority_subversion', 'loyalty_betrayal'}", differentiator: "{'authority_subversion'}" },
+  { id: 46555,  situation: "You run a charity with limited resources to feed the hungry. You have to decide between feeding the local community or sending their resources to a famine-stricken area overseas. Should your charity prioritize the local community or the overseas emergency?", do_action: "Prioritize local community", do_labels: "{'care_harm', 'loyalty_betrayal'}", notdo_action: "Prioritize overseas emergency", notdo_labels: "{'authority_subversion', 'care_harm', 'loyalty_betrayal'}", differentiator: "{'authority_subversion'}" },
+  { id: 48246,  situation: "You have always dreamed of becoming a professional musician. You have just graduated highschool and are currently fully supported by your parents. Your parents, however, believe that a career in music is unstable and want you to pursue a career in law. Should you pursue your dream of becoming a musician, if it means undermining and disappointing your parents?", do_action: "Pursue Music Career", do_labels: "{'care_harm', 'loyalty_betrayal'}", notdo_action: "Stay in Law / Follow Parents", notdo_labels: "{'authority_subversion', 'care_harm', 'loyalty_betrayal'}", differentiator: "{'authority_subversion'}" },
+  { id: 31266,  situation: "You are a young woman who accidentally got pregnant and knows you can't financially or emotionally support a child. Your boyfriend wants you to keep the baby, believing you guys can make it work, but you're considering abortion. Should you go through with the pregnancy due to your boyfriend's wishes or should you prioritize your own ability to provide and care for the baby?", do_action: "Go through with the pregnancy", do_labels: "{'purity_degradation', 'loyalty_betrayal', 'proportionality', 'care_harm'}", notdo_action: "Opt for abortion", notdo_labels: "{'loyalty_betrayal', 'care_harm', 'purity_degradation', 'authority_subversion', 'proportionality'}", differentiator: "{'authority_subversion'}" },
+  { id: 43764,  situation: "You are a therapist who often gives friends advice. Your friend is considering leaving her spouse, but you know her spouse is also your patient and is working hard to save the marriage. Should you tell your friend about her spouse's efforts, potentially breaching patient confidentiality?", do_action: "Breach Patient Confidentiality", do_labels: "{'loyalty_betrayal', 'proportionality', 'care_harm'}", notdo_action: "Uphold Patient Confidentiality", notdo_labels: "{'authority_subversion', 'loyalty_betrayal', 'proportionality', 'care_harm'}", differentiator: "{'authority_subversion'}" },
+  { id: 45012,  situation: "As an independent artist, you have built a successful personal brand and no longer need to work for others. However, a major corporation offers you a lucrative contract to exclusively produce art for them, but this would mean relinquishing control over your creative process and potentially compromising your artistic integrity. Should you accept the corporate offer, prioritizing financial security over artistic freedom?", do_action: "Accept the corporate offer", do_labels: "set()", notdo_action: "Reject the corporate offer", notdo_labels: "{'proportionality'}", differentiator: "{'proportionality'}" },
+  { id: 40068,  situation: "You have been diagnosed with a terminal illness and your doctor recommends an experimental treatment as part of a clinical trial that could potentially save your life. However, this treatment is not yet fully tested, with early trials showing it causes severe side effects in half of patients. Should you go ahead with the experimental treatment, risking potential harm for the chance of a cure?", do_action: "Choose the experimental treatment.", do_labels: "{'purity_degradation', 'authority_subversion', 'loyalty_betrayal', 'care_harm'}", notdo_action: "Reject the experimental treatment.", notdo_labels: "{'loyalty_betrayal', 'care_harm', 'purity_degradation', 'authority_subversion', 'proportionality'}", differentiator: "{'proportionality'}" },
+  { id: 10400,  situation: "You and your close friend are both deeply religious, but follow different faiths. Your friend is facing a health crisis and asks you to participate in a religious ritual of their faith that contradicts your own religious beliefs. Do you participate in the ritual to support your friend, even if it goes against your own beliefs?", do_action: "Participate in the friend's religious ritual", do_labels: "{'purity_degradation', 'authority_subversion', 'loyalty_betrayal', 'care_harm'}", notdo_action: "Refuse to participate in the friend's religious ritual", notdo_labels: "{'equality', 'loyalty_betrayal', 'care_harm', 'purity_degradation', 'authority_subversion'}", differentiator: "{'equality'}" },
+  { id: 41704,  situation: "You and your spouse have three energetic young children who demand a lot of attention and time. Your spouse has been the primary caregiver for months and is exhausted and struggling to cope, while you have been largely absent at home. Now you have a crucial work project that could potentially elevate your career. Should you prioritize your spouse's mental health and take a break from work, or push through with the project and potentially increase your family's financial stability?", do_action: "Prioritize Spouse's Mental Health", do_labels: "{'equality', 'loyalty_betrayal', 'care_harm'}", notdo_action: "Push Through with Work Project", notdo_labels: "{'loyalty_betrayal', 'care_harm'}", differentiator: "{'equality'}" },
+  { id: 45837,  situation: "You've been dating someone for a few months and have gotten very close. You've always prided yourself on honesty, but you're nervous that admitting your lack of sexual experience will lead to rejection or ridicule. Should you tell your partner about your inexperience before becoming intimate, potentially risking the relationship, or do you remain silent and hope for the best?", do_action: "Tell your partner about your inexperience", do_labels: "{'purity_degradation', 'equality', 'loyalty_betrayal', 'care_harm'}", notdo_action: "Remain silent about your inexperience", notdo_labels: "{'purity_degradation', 'loyalty_betrayal', 'care_harm'}", differentiator: "{'equality'}" },
+  { id: 14793,  situation: "You are a close friend of a family going through a rough patch due to escalating arguments between the parents. They confide in you about their issues, but you've noticed the children are severely affected by the constant fighting. Should you intervene and talk to the parents about the impacts on their children, potentially overstepping boundaries?", do_action: "Intervening", do_labels: "{'authority_subversion', 'loyalty_betrayal', 'care_harm'}", notdo_action: "Not Intervening", notdo_labels: "{'authority_subversion', 'equality', 'loyalty_betrayal', 'care_harm'}", differentiator: "{'equality'}" },
+  { id: 34460,  situation: "You and your partner have been trying to conceive for a while, and she took a home pregnancy test that yielded ambiguous results. She is feeling anxious and unsure, and doesn't want to take another test yet as she fears a negative result. Should you respect her decision and give her more time or insist she takes another test immediately for peace of mind?", do_action: "Insist on immediate retest", do_labels: "{'authority_subversion', 'loyalty_betrayal', 'care_harm'}", notdo_action: "Respect her decision and give her more time", notdo_labels: "{'authority_subversion', 'equality', 'loyalty_betrayal', 'care_harm'}", differentiator: "{'equality'}" },
+  { id: 7949,   situation: "You are a college student preparing for a crucial exam tomorrow. You've promised your younger sibling that you would help them with their school project tonight, but studying for your exam will require you to stay up all night. Without your help, your sibling will likely fail the class. Should you prioritize your academic success over your commitment to your sibling?", do_action: "Prioritize studying for exam", do_labels: "{'loyalty_betrayal'}", notdo_action: "Assist younger sibling with project", notdo_labels: "{'care_harm', 'loyalty_betrayal'}", differentiator: "{'care_harm'}" },
+  { id: 43191,  situation: "As a highschool teacher, you are responsible for the success of all students. During an important group project, you notice one student is struggling and falling behind, pulling the group's grade down. Giving them the extra help they need would mean leaving the other groups without support for most of the session. Should you prioritize the struggling student at the potential detriment of the rest of the class?", do_action: "Prioritize the struggling student", do_labels: "{'equality', 'care_harm'}", notdo_action: "Not Prioritize the struggling student", notdo_labels: "{'equality'}", differentiator: "{'care_harm'}" },
+  { id: 48976,  situation: "You've just upgraded your old but still functional TV for a new one. Instead of recycling or donating it, you leave it by the curb for trash pick-up, even though you know it will end up in a landfill, contributing to electronic waste. Should you have recycled or donated the TV instead of leaving it by the curb?", do_action: "Leaving the old TV by the curb", do_labels: "set()", notdo_action: "Not recycling or donating the TV", notdo_labels: "{'care_harm'}", differentiator: "{'care_harm'}" },
+  { id: 46758,  situation: "You and your partner have been trying to start a family, but you have both discovered you are carriers of a severe genetic disorder that could be inherited by your children. IVF with genetic screening is beyond your financial means and adoption is not something either of you wishes to pursue. Should you risk having a biological child knowing the potential health risks, or choose not to have children at all?", do_action: "Decide to have biological children", do_labels: "{'purity_degradation', 'authority_subversion', 'proportionality', 'care_harm'}", notdo_action: "Decide not to have children", notdo_labels: "{'loyalty_betrayal', 'care_harm', 'purity_degradation', 'authority_subversion', 'proportionality'}", differentiator: "{'loyalty_betrayal'}" },
+  { id: 6868,   situation: "You've been working in a dead-end job for years and you feel like you aren't living up to your potential. You've been offered a new job that pays significantly more and offers better career prospects, but it involves working for a company that has questionable ethics. Should you take the job and improve your personal situation at the risk of compromising your ethical standards?", do_action: "Take the job", do_labels: "{'purity_degradation', 'authority_subversion', 'proportionality', 'care_harm'}", notdo_action: "Reject the job", notdo_labels: "{'loyalty_betrayal', 'care_harm', 'purity_degradation', 'authority_subversion', 'proportionality'}", differentiator: "{'loyalty_betrayal'}" },
+  { id: 36100,  situation: "You have been diagnosed with a terminal illness and have the option to undergo a risky procedure that could potentially save your life. However, you are elderly and the procedure could significantly reduce your quality of life in your remaining years. Should you undergo the risky procedure for a chance at survival, or refuse it to maintain your current quality of life?", do_action: "Undergo the risky procedure", do_labels: "{'authority_subversion', 'care_harm'}", notdo_action: "Refuse the procedure", notdo_labels: "{'authority_subversion', 'care_harm', 'purity_degradation'}", differentiator: "{'purity_degradation'}" },
+  { id: 48359,  situation: "You have been best friends with someone since childhood, but recently they have developed a drug addiction. You have tried everything to help them but nothing has worked. It is causing significant harm to your mental health, but you fear leaving them alone might exacerbate their situation. Should you cut ties for your own wellbeing or stay and endure the negative effects for their sake?", do_action: "Cut Ties", do_labels: "{'loyalty_betrayal', 'proportionality', 'care_harm'}", notdo_action: "Stay and Endure", notdo_labels: "{'purity_degradation', 'loyalty_betrayal', 'proportionality', 'care_harm'}", differentiator: "{'purity_degradation'}" },
+  { id: 1862,   situation: "You have recently discovered that your brother has been dealing drugs in your neighborhood. He has been doing it for months and shows no signs of stopping. You're torn between reporting him to the authorities because it's the right thing to do and protecting him because he's family. Should you report your brother to the police?", do_action: "Report Brother", do_labels: "{'loyalty_betrayal', 'care_harm', 'purity_degradation', 'authority_subversion', 'proportionality'}", notdo_action: "Not Report Brother", notdo_labels: "{'authority_subversion', 'loyalty_betrayal', 'proportionality', 'care_harm'}", differentiator: "{'purity_degradation'}" },
+  { id: 15538,  situation: "You are an investigative journalist. You uncover evidence of secret government misconduct, but publishing it would risk national security. Should you publish the story or withhold it?", do_action: "Revealing the misconduct", do_labels: "{'purity_degradation', 'authority_subversion', 'equality', 'loyalty_betrayal'}", notdo_action: "Not revealing the misconduct", notdo_labels: "{'authority_subversion', 'equality', 'loyalty_betrayal'}", differentiator: "{'purity_degradation'}" },
+  { id: 38485,  situation: "You're a manager at a large corporation. You have begun dating one of your subordinates, causing tension and possible favoritism within the team. Should you disclose the relationship to human resources, potentially risking your job?", do_action: "Disclose Relationship", do_labels: "{'authority_subversion', 'care_harm', 'loyalty_betrayal'}", notdo_action: "Conceal Relationship", notdo_labels: "{'authority_subversion', 'loyalty_betrayal', 'care_harm', 'purity_degradation'}", differentiator: "{'purity_degradation'}" },
+];
+
+// Parse and shuffle
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+const DILEMMAS = shuffle(RAW.map(d => ({
+  ...d,
+  do_parsed:    parseSet(d.do_labels),
+  notdo_parsed: parseSet(d.notdo_labels),
+  diff_parsed:  parseSet(d.differentiator),
+})));
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let currentIdx = 0;
+const responses = {}; // { dilemmaId: { do: { foundationKey: {rating, correction} }, notdo: {...} } }
+
+// Read PROLIFIC_PID from URL
+const urlParams = new URLSearchParams(window.location.search);
+const PROLIFIC_PID = urlParams.get("PROLIFIC_PID") || "UNKNOWN";
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+function goTo(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function toggleConsent() {
+  const cb = document.getElementById('consent-check');
+  cb.checked = !cb.checked;
+  document.getElementById('consent-next-btn').disabled = !cb.checked;
+}
+
+function startTask() {
+  currentIdx = 0;
+  renderDilemma();
+  goTo('screen-task');
+}
+
+function prevDilemma() {
+  saveCurrentResponse();
+  if (currentIdx > 0) { currentIdx--; renderDilemma(); }
+}
+
+function nextDilemma() {
+  saveCurrentResponse();
+  if (currentIdx < DILEMMAS.length - 1) {
+    currentIdx++;
+    renderDilemma();
+  } else {
+    submitAll();
+  }
+}
+
+// ══════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════
+function renderDilemma() {
+  const d = DILEMMAS[currentIdx];
+  const total = DILEMMAS.length;
+  const pct = ((currentIdx + 1) / total * 100).toFixed(1);
+
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${currentIdx + 1} / ${total}`;
+  document.getElementById('dilemma-meta').textContent = `Daily Dilemma #${d.id}`;
+  document.getElementById('dilemma-text').textContent = d.situation;
+  document.getElementById('do-action').textContent = d.do_action;
+  document.getElementById('notdo-action').textContent = d.notdo_action;
+
+  document.getElementById('btn-back-task').disabled = currentIdx === 0;
+  document.getElementById('btn-next-task').textContent = currentIdx === DILEMMAS.length - 1
+    ? 'Submit ›' : 'Next ›';
+  document.getElementById('btn-next-task').disabled = true;
+
+  renderFoundations('do-foundations',    d.do_parsed,    d.diff_parsed, d, 'do');
+  renderFoundations('notdo-foundations', d.notdo_parsed, d.diff_parsed, d, 'notdo');
+
+  // restore saved state if navigating back
+  const saved = responses[d.id];
+  if (saved) { restoreResponse(d, saved); }
+
+  checkComplete();
+}
+
+function renderFoundations(containerId, foundations, differentiators, d, side) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+
+  if (!foundations.length) {
+    container.innerHTML = '<p style="font-size:13px;color:var(--ink-light);font-style:italic;">No foundation labels assigned.</p>';
+    return;
+  }
+
+  // Sort: shared first, differentiator last
+  const shared = foundations.filter(f => !differentiators.includes(f));
+  const diff   = foundations.filter(f =>  differentiators.includes(f));
+  const ordered = [...shared, ...diff];
+
+  ordered.forEach((fKey, i) => {
+    const isDiff = differentiators.includes(fKey);
+    const meta = FOUNDATION_META[fKey];
+    const uid = `${side}-${d.id}-${fKey}`;
+
+    const row = document.createElement('div');
+    row.className = 'f-row' + (isDiff ? ' is-differentiator' : '');
+    row.dataset.key = fKey;
+    row.dataset.side = side;
+    row.dataset.dilemma = d.id;
+
+    row.innerHTML = `
+      <div class="f-name-row">
+        <span class="f-name">${isDiff ? '* ' : ''}${meta.label}<span class="tooltip">${meta.def} <em>Example: ${meta.example}</em></span></span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label disagree">Disagree</span>
+        <div class="three-slider">
+          <label><input type="radio" name="${uid}" value="disagree" onchange="onRatingChange(this)"><span class="dot"></span></label>
+          <label><input type="radio" name="${uid}" value="neutral"  onchange="onRatingChange(this)"><span class="dot"></span></label>
+          <label><input type="radio" name="${uid}" value="agree"    onchange="onRatingChange(this)"><span class="dot"></span></label>
+        </div>
+        <span class="slider-label agree">Agree</span>
+      </div>
+      <div class="correction-row" id="corr-${uid}">
+        <div class="correction-label">Which foundation fits better?</div>
+        <select class="correction-select" id="sel-${uid}" onchange="checkComplete()">
+          <option value="">— Select a foundation —</option>
+          ${ALL_FOUNDATIONS.map(f => `<option value="${f}">${FOUNDATION_META[f].label}</option>`).join('')}
+        </select>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function onRatingChange(input) {
+  const name = input.name;
+  const corrRow = document.getElementById('corr-' + name);
+  if (!corrRow) return;
+  if (input.value === 'disagree' || input.value === 'neutral') {
+    corrRow.classList.add('visible');
+  } else {
+    corrRow.classList.remove('visible');
+    const sel = document.getElementById('sel-' + name);
+    if (sel) sel.value = '';
+  }
+  checkComplete();
+}
+
+function checkComplete() {
+  const d = DILEMMAS[currentIdx];
+  const allFoundations = [
+    ...d.do_parsed.map(f => `do-${d.id}-${f}`),
+    ...d.notdo_parsed.map(f => `notdo-${d.id}-${f}`),
+  ];
+  // If there are no foundations at all, allow proceeding
+  if (allFoundations.length === 0) {
+    document.getElementById('btn-next-task').disabled = false;
+    return;
+  }
+  const complete = allFoundations.every(uid => {
+    const checked = document.querySelector(`input[name="${uid}"]:checked`);
+    if (!checked) return false;
+    // If disagree or neutral, the correction dropdown must also be filled
+    if (checked.value === 'disagree' || checked.value === 'neutral') {
+      const sel = document.getElementById('sel-' + uid);
+      if (!sel || !sel.value) return false;
+    }
+    return true;
+  });
+  document.getElementById('btn-next-task').disabled = !complete;
+}
+
+// ══════════════════════════════════════
+// SAVE / RESTORE
+// ══════════════════════════════════════
+function saveCurrentResponse() {
+  const d = DILEMMAS[currentIdx];
+  if (!responses[d.id]) responses[d.id] = { do: {}, notdo: {} };
+
+  ['do', 'notdo'].forEach(side => {
+    const foundations = side === 'do' ? d.do_parsed : d.notdo_parsed;
+    foundations.forEach(fKey => {
+      const uid = `${side}-${d.id}-${fKey}`;
+      const checked = document.querySelector(`input[name="${uid}"]:checked`);
+      const sel = document.getElementById('sel-' + uid);
+      responses[d.id][side][fKey] = {
+        rating:     checked ? checked.value : null,
+        correction: sel ? sel.value : null,
+      };
+    });
+  });
+}
+
+function restoreResponse(d, saved) {
+  ['do', 'notdo'].forEach(side => {
+    const data = saved[side] || {};
+    Object.entries(data).forEach(([fKey, val]) => {
+      const uid = `${side}-${d.id}-${fKey}`;
+      if (val.rating) {
+        const radio = document.querySelector(`input[name="${uid}"][value="${val.rating}"]`);
+        if (radio) { radio.checked = true; onRatingChange(radio); }
+      }
+      if (val.correction) {
+        const sel = document.getElementById('sel-' + uid);
+        if (sel) sel.value = val.correction;
+      }
+    });
+  });
+}
+
+// ══════════════════════════════════════
+// SUBMIT
+// ══════════════════════════════════════
+function submitAll() {
+  saveCurrentResponse();
+  console.log("Responses to submit:", JSON.stringify({ prolific_pid: PROLIFIC_PID, responses }, null, 2));
+  // → Here you'll POST to your Google Sheets webhook
+  document.getElementById('prolific-code-display').textContent = PROLIFIC_CODE;
+  goTo('screen-complete');
+}
+
+function redirectToProlific() {
+  window.location.href = PROLIFIC_COMPLETION_URL;
+}
+</script>
+</body>
+</html>
