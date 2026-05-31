@@ -586,6 +586,20 @@
     letter-spacing: 0.05em;
   }
 
+  /* submitting spinner */
+  .submit-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--ink);
+    border-radius: 50%;
+    margin: 0 auto;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
   /* completion */
   .prolific-code {
     font-family: 'DM Mono', monospace, 'DM Sans', sans-serif;
@@ -804,6 +818,20 @@
       <button class="btn" id="btn-back-task" onclick="prevDilemma()"><span class="arrow">‹</span> Back</button>
       <span class="progress-text" id="progress-label"></span>
       <button class="btn btn-primary" id="btn-next-task" onclick="nextDilemma()">Next <span class="arrow">›</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 4.5 — Submitting
+══════════════════════════════════════ -->
+<div class="screen" id="screen-submitting">
+  <div class="card" style="text-align:center; padding: 64px 52px;">
+    <div class="task-label" style="justify-content:center;">Please wait</div>
+    <h2 style="margin-bottom:16px;">Saving your responses…</h2>
+    <p style="max-width:400px; margin: 0 auto;">This will only take a moment. Please do not close this tab.</p>
+    <div style="margin-top:36px;">
+      <div class="submit-spinner"></div>
     </div>
   </div>
 </div>
@@ -1180,6 +1208,7 @@ async function submitAll() {
   if (submitBtn.disabled) return;
   submitBtn.disabled = true;
   submitBtn.textContent = 'Submitting…';
+  goTo('screen-submitting');
 
   saveCurrentResponse();
 
