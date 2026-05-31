@@ -1,418 +1,281 @@
-\# CLAUDE.md — Daily Dilemmas Label Verification Task
+# CLAUDE.md — Daily Dilemmas Label Verification Task
 
+## Project Overview
 
+A single-file web annotation app (`dilemmas_annotation.html`) built for Prolific. Participants verify the quality of moral foundation labels assigned to everyday ethical dilemmas. The app collects ratings and submits them to a Google Sheet backend.
 
-\## Project Overview
+The theoretical framework is **Moral Foundations Theory (MFQ-2)** — Atari et al. (2023), *Journal of Personality and Social Psychology*. The six foundations are: Care, Equality, Proportionality, Loyalty, Authority, Purity.
 
+---
 
+## File Structure
 
-A single-file web annotation app (`dilemmas\_annotation.html`) built for Prolific. Participants verify the quality of moral foundation labels assigned to everyday ethical dilemmas. The app collects ratings and submits them to a Google Sheet backend.
-
-
-
-The theoretical framework is \*\*Moral Foundations Theory (MFQ-2)\*\* — Atari et al. (2023), \*Journal of Personality and Social Psychology\*. The six foundations are: Care, Equality, Proportionality, Loyalty, Authority, Purity.
-
-
-
-\---
-
-
-
-\## File Structure
-
-
-
-Everything lives in a \*\*single HTML file\*\* — no build pipeline, no framework, no dependencies. It can be deployed by dropping it on Vercel, Netlify, or GitHub Pages.
-
-
+Everything lives in a **single HTML file** — no build pipeline, no framework, no dependencies. It can be deployed by dropping it on Vercel, Netlify, or GitHub Pages.
 
 ```
-
-dilemmas\_annotation.html
-
+dilemmas_annotation.html
 ├── <style>          — All CSS (CSS variables, layout, components)
-
 ├── Screens 1–5      — HTML for each screen (hidden/shown via JS)
-
 └── <script>
-
-&#x20;   ├── Constants     — PROLIFIC\_CODE, PROLIFIC\_COMPLETION\_URL, SHEET\_URL
-
-&#x20;   ├── FOUNDATION\_META  — Labels and definitions for the 6 foundations
-
-&#x20;   ├── RAW           — The 22 dilemma objects (hardcoded data)
-
-&#x20;   ├── State         — currentIdx, responses {}
-
-&#x20;   └── Functions     — navigation, rendering, saving, submitting
-
+    ├── Constants        — PROLIFIC_CODE, PROLIFIC_COMPLETION_URL, SHEET_URL
+    ├── FOUNDATION_META  — Labels, definitions and examples for the 6 foundations
+    ├── RAW              — The 22 dilemma objects (hardcoded data)
+    ├── State            — currentIdx, responses {}
+    └── Functions        — navigation, rendering, saving, submitting
 ```
 
+---
 
-
-\---
-
-
-
-\## Screen Flow
-
-
+## Screen Flow
 
 ```
-
 Screen 1: Welcome
-
-&#x20;   ↓ (Next button)
-
+    ↓ (Next button)
 Screen 2: Consent
-
-&#x20;   ↓ (checkbox must be ticked before Next unlocks)
-
+    ↓ (checkbox must be ticked before Next unlocks)
 Screen 3: Instructions
-
-&#x20;   ↓ (Next button)
-
+    ↓ (Next button)
 Screen 4: Annotation (×22 dilemmas, shuffled)
-
-&#x20;   ↓ (Submit button — only enabled when all ratings + dropdowns are filled)
-
+    ↓ (Submit button — only enabled when all ratings are filled and open pill panels have a selection)
 Screen 5: Completion (shows Prolific code, redirects to Prolific)
-
 ```
-
-
 
 Navigation is handled by `goTo(screenId)` which shows/hides `.screen` divs.
 
+---
 
-
-\---
-
-
-
-\## Annotation Screen Logic
-
-
+## Annotation Screen Logic
 
 Each dilemma has:
+- A situation text shown at the top
+- Two columns: **Action A** (internally `do`) and **Action B** (internally `notdo`)
+- Each column lists the moral foundations assigned to that action in the source data
+- Foundations are ordered: shared foundations first, differentiating foundation last (marked with `*` prefix and a dashed separator)
+- A **"+ Add foundation"** button at the bottom of each column (always visible)
+- A **"?" button** in the top-right corner of the card that opens the cheatsheet modal
 
-\- A situation text shown at the top
+### Per-foundation row:
+1. Foundation name with a hover tooltip showing definition + example
+2. A 3-point dot slider: **Disagree · Neutral · Agree** (colour-coded red/amber/green)
 
-\- Two columns: \*\*Action A\*\* (internally `do`) and \*\*Action B\*\* (internally `notdo`)
+### "+ Add foundation" pills:
+- One button per column (Action A / Action B), always visible
+- Clicking opens a panel of 6 foundation pills that toggle on/off
+- Multiple foundations can be selected
+- Each pill has a hover tooltip with the foundation definition and example
+- Button label changes to "− Add foundation" when open
+- If panel is open, at least one pill must be selected before Next enables
 
-\- Each column lists the moral foundations assigned to that action in the source data
+### Cheatsheet modal ("?"):
+- Fixed to the top-right of the annotation card
+- Opens a centred modal with a semi-transparent backdrop (fade-in animation)
+- Two tabs: **Instructions** (rating scale explainer) and **Foundations** (all 6 definitions)
+- Closes by clicking "?" again or clicking the backdrop
 
-\- Foundations are ordered: shared foundations first, differentiating foundation last (separated by a dashed line marked with an asterisk `\*`)
+### Next/Submit button gating (`checkComplete()`):
+- Disabled on dilemma load
+- Enabled only when:
+  1. Every foundation row has a rating selected
+  2. Every open pill panel has at least one pill selected
+- Called on every slider change, pill toggle, and pill panel open/close
+- On the last dilemma, button reads "Submit ›"
+- On Submit: button immediately disabled and shows "Submitting…" to prevent double-submission
 
+---
 
+## Data Model
 
-\### Per-foundation row:
-
-1\. Foundation name (hovering shows a tooltip with definition + example)
-
-2\. A 3-point dot slider: \*\*Disagree · Neutral · Agree\*\*
-
-3\. A dropdown (hidden by default): appears only when rating is Disagree or Neutral, asking "Which foundation fits better?" — options are the 6 foundations + "None"
-
-
-
-\### Next/Submit button gating:
-
-\- Disabled on page load
-
-\- Enabled only when \*\*every\*\* foundation row has a rating AND every visible dropdown has a selection
-
-\- `checkComplete()` is called on every slider change and every dropdown change
-
-\- On the last dilemma, button reads "Submit" instead of "Next"
-
-\- On Submit: button is immediately disabled and shows "Submitting…" to prevent double-submission
-
-
-
-\---
-
-
-
-\## Data Model
-
-
-
-\### Dilemma object (from `RAW` array):
-
+### Dilemma object (from `RAW` array):
 ```javascript
-
 {
-
-&#x20; id: 33532,
-
-&#x20; situation: "...",
-
-&#x20; do\_action: "Accept the Promotion",
-
-&#x20; do\_labels: "{'loyalty\_betrayal'}",          // raw string from Excel
-
-&#x20; notdo\_action: "Reject the Promotion",
-
-&#x20; notdo\_labels: "{'authority\_subversion', 'loyalty\_betrayal'}",
-
-&#x20; differentiator: "{'authority\_subversion'}",
-
-&#x20; // parsed versions added at runtime:
-
-&#x20; do\_parsed: \["loyalty\_betrayal"],
-
-&#x20; notdo\_parsed: \["authority\_subversion", "loyalty\_betrayal"],
-
-&#x20; diff\_parsed: \["authority\_subversion"],
-
+  id: 33532,
+  situation: "...",
+  do_action: "Accept the Promotion",
+  do_labels: "{'loyalty_betrayal'}",          // raw string from Excel
+  notdo_action: "Reject the Promotion",
+  notdo_labels: "{'authority_subversion', 'loyalty_betrayal'}",
+  differentiator: "{'authority_subversion'}",
+  // parsed versions added at runtime:
+  do_parsed: ["loyalty_betrayal"],
+  notdo_parsed: ["authority_subversion", "loyalty_betrayal"],
+  diff_parsed: ["authority_subversion"],
 }
-
 ```
 
+`parseSet(s)` converts the raw string format `"{'care_harm', 'loyalty_betrayal'}"` into a JS array, filtering out any keys not in `FOUNDATION_META`.
 
+Some dilemmas have `set()` for one side — these render "No foundation labels assigned" but still show the "+ Add foundation" button.
 
-`parseSet(s)` converts the raw string format `"{'care\_harm', 'loyalty\_betrayal'}"` into a JS array, filtering out any keys not in `FOUNDATION\_META`.
-
-
-
-\### Response state:
-
+### Response state:
 ```javascript
-
 responses = {
-
-&#x20; \[dilemma\_id]: {
-
-&#x20;   do: {
-
-&#x20;     \[foundationKey]: { rating: "agree"|"neutral"|"disagree", correction: "care\_harm"|"none"|"" }
-
-&#x20;   },
-
-&#x20;   notdo: { ... }
-
-&#x20; }
-
+  _pillState: {
+    "col-pills-do-33532": ["care_harm", "equality"],  // selected pills per column
+  },
+  [dilemma_id]: {
+    do: {
+      [foundationKey]: { rating: "agree"|"neutral"|"disagree" },
+      _pills: "care_harm,equality",   // comma-separated selected pill keys, or null
+    },
+    notdo: { ... }
+  }
 }
-
 ```
-
-
 
 Saved by `saveCurrentResponse()` on every Next/Back navigation.
+Restored by `restoreResponse()` + `restoreColumnPills()` when navigating back.
 
+---
 
+## Foundation Keys
 
-\---
-
-
-
-\## Foundation Keys
-
-
-
-Internal keys used in the data and `FOUNDATION\_META`:
-
-
+Internal keys used in the data and `FOUNDATION_META`:
 
 | Key | Display Label |
-
 |---|---|
-
-| `care\_harm` | Care |
-
+| `care_harm` | Care |
 | `equality` | Equality |
-
 | `proportionality` | Proportionality |
+| `loyalty_betrayal` | Loyalty |
+| `authority_subversion` | Authority |
+| `purity_degradation` | Purity |
 
-| `loyalty\_betrayal` | Loyalty |
+---
 
-| `authority\_subversion` | Authority |
+## Google Sheets Integration
 
-| `purity\_degradation` | Purity |
-
-
-
-\---
-
-
-
-\## Google Sheets Integration
-
-
-
-\*\*Webhook URL:\*\*
-
+**Webhook URL:**
 ```
-
 https://script.google.com/macros/s/AKfycbx0a-aKW-xIMHBMzbHGOMC5lPX3JKqkyNNIeYqAXL1fh0il4KqmNeEPU1K9JoIVe4IH8w/exec
-
 ```
 
+On submit, `submitAll()` flattens `responses` into one row per foundation and POSTs to the webhook.
 
+### Row types:
 
-On submit, `submitAll()` flattens `responses` into one row per foundation rating and POSTs:
-
-
-
+**Pre-labeled foundation ratings:**
 ```javascript
-
 {
-
-&#x20; rows: \[
-
-&#x20;   {
-
-&#x20;     prolific\_pid: "abc123",
-
-&#x20;     dilemma\_id: "33532",
-
-&#x20;     side: "do",               // "do" or "notdo"
-
-&#x20;     foundation: "care\_harm",
-
-&#x20;     rating: "agree",          // "agree", "neutral", or "disagree"
-
-&#x20;     correction: "",           // foundation key, "none", or ""
-
-&#x20;   },
-
-&#x20;   ...
-
-&#x20; ]
-
+  prolific_pid: "abc123",
+  dilemma_id:   "33532",
+  side:         "do",         // "do" or "notdo"
+  foundation:   "care_harm",
+  rating:       "agree",      // "agree", "neutral", or "disagree"
 }
-
 ```
 
-
+**Annotator-added foundations:**
+```javascript
+{
+  prolific_pid: "abc123",
+  dilemma_id:   "33532",
+  side:         "do",
+  foundation:   "equality",
+  rating:       "added",      // always "added" for pill selections
+}
+```
 
 Uses `mode: "no-cors"` (required for Google Apps Script — no response body returned but data writes correctly).
 
+**Sheet columns:** `prolific_pid | dilemma_id | side | foundation | rating | timestamp`
 
+### Apps Script (`doPost`):
+```javascript
+function doPost(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const data = JSON.parse(e.postData.contents);
+  data.rows.forEach(row => {
+    sheet.appendRow([
+      row.prolific_pid,
+      row.dilemma_id,
+      row.side,
+      row.foundation,
+      row.rating,
+      new Date().toISOString()
+    ]);
+  });
+  return ContentService
+    .createTextOutput(JSON.stringify({ status: "ok" }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+```
 
-The Apps Script (`doPost`) appends one sheet row per object in `rows`, adding a server-side timestamp.
+---
 
-
-
-\*\*Sheet columns:\*\* `prolific\_pid | dilemma\_id | side | foundation | rating | correction | timestamp`
-
-
-
-\---
-
-
-
-\## Prolific Integration
-
-
+## Prolific Integration
 
 Participant ID is read from the URL on load:
-
 ```javascript
-
-const PROLIFIC\_PID = new URLSearchParams(window.location.search).get("PROLIFIC\_PID") || "UNKNOWN";
-
+const PROLIFIC_PID = new URLSearchParams(window.location.search).get("PROLIFIC_PID") || "UNKNOWN";
 ```
-
-
 
 Study URL format to paste into Prolific:
-
+```
+https://your-site.vercel.app?PROLIFIC_PID={{%PROLIFIC_PID%}}
 ```
 
-https://your-site.vercel.app?PROLIFIC\_PID={{%PROLIFIC\_PID%}}
-
-```
-
-
-
-\*\*To update before going live:\*\*
-
+**To update before going live:**
 ```javascript
-
-const PROLIFIC\_CODE = "C1B2-A3D4";  // ← replace with real Prolific completion code
-
+const PROLIFIC_CODE = "C1B2-A3D4";  // ← replace with real Prolific completion code
 ```
-
 The completion URL is auto-constructed from this code.
 
+---
 
-
-\---
-
-
-
-\## Key Constants to Update Before Deployment
-
-
+## Key Constants to Update Before Deployment
 
 | Constant | Location | What to change |
-
 |---|---|---|
+| `PROLIFIC_CODE` | Top of `<script>` | Your actual Prolific study completion code |
+| `SHEET_URL` | Inside `submitAll()` | Already set — only change if you redeploy the Apps Script |
 
-| `PROLIFIC\_CODE` | Top of `<script>` | Your actual Prolific study completion code |
+---
 
-| `SHEET\_URL` | Inside `submitAll()` | Already set — only change if you redeploy the Apps Script |
+## Key Functions Reference
 
+| Function | Purpose |
+|---|---|
+| `goTo(screenId)` | Navigate between screens |
+| `startTask()` | Shuffle dilemmas and show screen 4 |
+| `renderDilemma()` | Render current dilemma, update progress, restore state |
+| `renderFoundations(containerId, foundations, differentiators, d, side)` | Build foundation rows + pill button for one column |
+| `saveCurrentResponse()` | Save all ratings and pill state for current dilemma |
+| `restoreResponse(d, saved)` | Restore slider positions from saved state |
+| `restoreColumnPills(d)` | Restore pill selections and panel open state |
+| `checkComplete()` | Enable/disable Next based on completeness |
+| `togglePills(colId)` | Open/close pill panel for a column |
+| `togglePill(el)` | Toggle a single pill on/off |
+| `toggleCheatsheet()` | Open/close the cheatsheet modal |
+| `switchTab(tab)` | Switch between Instructions/Foundations tabs |
+| `submitAll()` | Flatten responses and POST to Google Sheets |
 
+---
 
-\---
-
-
-
-\## Design System
-
-
+## Design System
 
 CSS variables (defined on `:root`):
 
-
-
 | Variable | Use |
-
 |---|---|
-
 | `--bg` | Page background (`#f5f0e8`) |
-
 | `--card` | Card background (`#fffdf8`) |
-
 | `--ink` | Primary text |
-
 | `--ink-light` | Muted text / labels |
-
-| `--accent` | Red accent (`#c84b2f`) — used for progress bar, foundation boxes |
-
+| `--accent` | Red accent (`#c84b2f`) — progress bar, left borders |
 | `--agree` | Green (`#2a7a4b`) |
-
 | `--disagree` | Red (`#c84b2f`) |
-
 | `--neutral` | Amber (`#b08a50`) |
-
 | `--border` | Subtle border colour |
-
-
 
 Fonts: `Playfair Display` (headings) + `DM Sans` (body) via Google Fonts.
 
+---
 
+## What Has Been Deliberately Kept Simple
 
-\---
-
-
-
-\## What Has Been Deliberately Kept Simple
-
-
-
-\- No React, no bundler, no npm — single file, drop and deploy
-
-\- No user accounts or sessions — Prolific PID is the only identifier
-
-\- No backend server — Google Apps Script handles all persistence
-
-\- Dilemma order is shuffled on load (client-side `shuffle()`) to mitigate ordering effects
-
-\- Back navigation is supported and restores previous responses correctly via `restoreResponse()`
-
+- No React, no bundler, no npm — single file, drop and deploy
+- No user accounts or sessions — Prolific PID is the only identifier
+- No backend server — Google Apps Script handles all persistence
+- Dilemma order is shuffled on load (`shuffle()`) to mitigate ordering effects
+- Back navigation supported — restores all ratings and pill state correctly
+- Double-submission prevented by disabling Submit button on first click
